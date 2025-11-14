@@ -1,0 +1,11 @@
+{
+  "name": "zorkeeler-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "merge:data": "node scripts/merge-neighborhoods.js"
+  },
+  "dependencies": {
+    "papaparse": "^5.4.1"
+  }
+}
