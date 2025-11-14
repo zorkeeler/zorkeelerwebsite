@@ -10,9 +10,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/theme.css" />
   <script defer src="/assets/js/site.js"></script>
-  <script defer src="/assets/js/blog-data.js"></script>
-  <script defer src="/assets/js/blog-source.js"></script>
-  <script defer src="/assets/js/blog-article.js"></script>
 </head>
 <body>
   <header class="header" role="banner">
@@ -83,4 +80,135 @@
     <div class="footer-copy">© <span id="y"></span> Zor Keeler · TEC Real Estate, Inc. · Seattle, WA</div>
   </footer>
 </body>
+<script>
+(function(){
+  const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxqpI4zoU8QrK_TtB82_CRNn0Io7aSvvNvpAHn5UZFMpJqBXG-OdhP-PiEgE2ZBh6JpagmIwA_Uj44/pub?gid=0&single=true&output=csv";
+  const PLACEHOLDER = "/assets/img/Seattle%20Homes.jpg";
+
+  const $ = (sel) => document.querySelector(sel);
+  const articleTitle = $("#article-title");
+  const articleExcerpt = $("#article-excerpt");
+  const articleMeta = $("#article-meta");
+  const articleTags = $("#article-tags");
+  const articleBody = $("#article-body");
+  const articleFootnote = $("#article-footnote");
+
+  const params = new URLSearchParams(window.location.search);
+  const slugParam = params.get("slug");
+
+  function parseCSV(text){
+    const rows=[]; let i=0, cur="", row=[], inQ=false;
+    while(i<text.length){
+      const ch=text[i], next=text[i+1];
+      if(ch==='\"'){
+        if(inQ && next==='\"'){ cur+='\"'; i++; }
+        else inQ=!inQ;
+      } else if(ch===',' && !inQ){
+        row.push(cur); cur="";
+      } else if((ch==='\n' || ch==='\r') && !inQ){
+        if(cur!=="" || row.length){ row.push(cur); rows.push(row); row=[]; cur=""; }
+      } else {
+        cur+=ch;
+      }
+      i++;
+    }
+    if(cur!=="" || row.length){ row.push(cur); rows.push(row); }
+    return rows;
+  }
+
+  const norm = str => (str||"").trim().toLowerCase().replace(/[^a-z0-9_]+/g,"_");
+  const slugify = (value="") => value.toString().toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"") || `post-${Date.now()}`;
+  const stripHTML = html => { const tmp=document.createElement("div"); tmp.innerHTML=html; return tmp.textContent||tmp.innerText||""; };
+
+  const toParagraphs = content => {
+    if(!content) return "";
+    if (/<\s*\w+[^>]*>/i.test(content)) return content;
+    return content.trim()
+      .split(/\n\s*\n+/)
+      .map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+      .join("");
+  };
+
+  const canonicalImageURL = src => {
+    if(!src) return "";
+    let url = src.trim();
+    if(!/^https?:\/\//i.test(url)) return "";
+    if(/drive\.google\.com/i.test(url)){
+      const idMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      const id = idMatch ? idMatch[1] : "";
+      if(id){
+        if(/\/thumbnail/i.test(url)){
+          const szMatch = url.match(/[?&]sz=([^&]+)/);
+          const size = szMatch ? szMatch[1] : "w2000";
+          return `https://drive.google.com/thumbnail?id=${id}&sz=${size}`;
+        }
+        return `https://drive.google.com/uc?id=${id}&export=view`;
+      }
+    }
+    return url;
+  };
+
+  function renderPost(post){
+    const title = post.title || "Article";
+    document.title = `${title} | Zor Keeler`;
+    articleTitle.textContent = title;
+    articleExcerpt.textContent = post.excerpt || "";
+    const metaPieces = [];
+    if(post.date) metaPieces.push(new Date(post.date).toLocaleDateString(undefined,{year:"numeric", month:"short", day:"numeric"}));
+    if(post.readingTime) metaPieces.push(post.readingTime);
+    articleMeta.innerHTML = metaPieces.join("<span class=\"dot\">·</span>");
+    if(post.tags && post.tags.length){
+      articleTags.hidden = false;
+      articleTags.innerHTML = post.tags.map(tag => `<span class="blog-tag">${tag}</span>`).join("");
+    } else {
+      articleTags.hidden = true;
+    }
+    articleBody.innerHTML = toParagraphs(post.contentHTML || post.contentMd || post.content_md || "");
+    const imageUrl = canonicalImageURL(post.image) || PLACEHOLDER;
+    articleFootnote.innerHTML = `<figure class="article-featured"><img src="${imageUrl}" alt="${title} hero image" loading="lazy"></figure>`;
+  }
+
+  function handleError(){
+    articleTitle.textContent = "Article not found";
+    articleExcerpt.textContent = "We couldn't load that article. Return to the blog for the latest notes.";
+    articleBody.innerHTML = "";
+    articleTags.hidden = true;
+  }
+
+  fetch(CSV_URL)
+    .then(res => res.text())
+    .then(csvText => {
+      const rows = parseCSV(csvText);
+      const headers = rows.shift() || [];
+      const index = {};
+      headers.forEach((h,i) => index[norm(h)]=i);
+      const val = (row, key) => row[index[key]] ?? "";
+      const posts = rows.map(row => {
+        if((val(row,"published") || "").toLowerCase() !== "true") return null;
+        const title = val(row,"title") || "";
+        const slug = val(row,"slug") || slugify(title);
+        return {
+          slug,
+          title,
+          date: val(row,"date"),
+          tags: (val(row,"tags") || "").split(/[,|]/).map(t=>t.trim()).filter(Boolean),
+          excerpt: val(row,"excerpt"),
+          contentHTML: val(row,"content_html"),
+          contentMd: val(row,"content_md"),
+          readingTime: val(row,"reading_time"),
+          image: val(row,"image_url"),
+          canonicalUrl: val(row,"canonical_url")
+        };
+      }).filter(Boolean);
+
+      const post = posts.find(p => !slugParam || p.slug === slugParam);
+      if(!post){
+        handleError();
+        return;
+      }
+      renderPost(post);
+    })
+    .catch(() => handleError());
+})();
+</script>
 </html>

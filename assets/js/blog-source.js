@@ -86,12 +86,19 @@
       const parsed = new URL(url);
       const host = parsed.hostname;
       if (host === "drive.google.com") {
+        const isThumbnail = parsed.pathname.includes("/thumbnail");
         let id = parsed.searchParams.get("id");
         if (!id && parsed.pathname.includes("/file/d/")) {
           const parts = parsed.pathname.split("/file/d/");
           if (parts[1]) id = parts[1].split("/")[0];
         }
-        if (id) return `https://drive.google.com/uc?export=view&id=${id}`;
+        if (id) {
+          if (isThumbnail) {
+            const size = parsed.searchParams.get("sz") || "w2000";
+            return `https://drive.google.com/thumbnail?id=${id}&sz=${size}`;
+          }
+          return `https://drive.google.com/uc?export=view&id=${id}`;
+        }
       }
       if (host === "lh3.googleusercontent.com" || host === "photos.app.goo.gl") {
         return url;

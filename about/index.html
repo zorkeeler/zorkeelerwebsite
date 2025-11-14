@@ -71,7 +71,7 @@
         <input type="email" name="email" placeholder="Email" required>
         <textarea name="message" placeholder="How can I help?" required></textarea>
         <div class="form-row">
-          <div id="recaptcha-container" class="g-recaptcha" data-sitekey="6LciAAwsAAAAAFq8avl5xPycvpTM33EvHHBiXy1i" data-callback="onRecaptchaSuccess"></div>
+          <div id="recaptcha-container" class="g-recaptcha" data-sitekey="6LdiBw0sAAAAAOQ1eA_HiYjSpChVDoHwa5fF72_H" data-callback="onRecaptchaSuccess"></div>
           <input type="hidden" name="recaptcha_token" id="recaptcha_token">
         </div>
         <button class="btn primary" type="submit">Send</button>
@@ -84,20 +84,11 @@
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 <script>
   function onRecaptchaSuccess(token) {
-    document.getElementById('recaptcha_token').value = token;
-  }
-
-  const contactForm = document.forms.contact;
-  if (contactForm) {
-    contactForm.addEventListener('submit', function(event) {
-      const tokenField = document.getElementById('recaptcha_token');
-      if (!tokenField.value) {
-        event.preventDefault();
-        if (window.grecaptcha) {
-          grecaptcha.execute();
-        }
-      }
-    });
+    // Store the token in your hidden field so it gets submitted with the form
+    var tokenField = document.getElementById('recaptcha_token');
+    if (tokenField) {
+      tokenField.value = token;
+    }
   }
 </script>
 

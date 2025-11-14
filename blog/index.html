@@ -10,9 +10,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/theme.css" />
   <script defer src="/assets/js/site.js"></script>
-  <script defer src="/assets/js/blog-data.js"></script>
-  <script defer src="/assets/js/blog-source.js"></script>
-  <script defer src="/assets/js/blog.js"></script>
 </head>
 <body>
   <header class="header" role="banner">
@@ -42,8 +39,11 @@
 
   <section class="section">
     <div class="wrap">
-      <div class="blog-grid" id="blog-list"></div>
-      <div id="blog-status" class="blog-status" aria-live="polite"></div>
+      <!-- ===== ZK BLOG (mobile-left + sleek dot pagination, robust CSV, smooth transitions) ===== -->
+      <div id="zk-blog" class="zk-blog">
+        <div id="zk-list"></div>
+        <nav id="zk-pager" class="zk-pager" aria-label="Blog pagination"></nav>
+      </div>
     </div>
   </section>
 
@@ -78,5 +78,297 @@
     </div>
     <div class="footer-copy">© <span id="y"></span> Zor Keeler · TEC Real Estate, Inc. · Seattle, WA</div>
   </footer>
+  <style>
+    #zk-blog {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 0;
+    }
+    .zk-item {
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      border-radius: 10px;
+      box-shadow: 0 12px 28px rgba(15,23,42,.12);
+      padding: clamp(18px, 2.6vw, 22px);
+      margin: 0;
+    }
+    .zk-item + .zk-item { margin-top: clamp(18px, 3vw, 26px); }
+    .zk-row {
+      display: grid;
+      grid-template-columns: clamp(150px, 20vw, 220px) minmax(0, 1fr);
+      gap: clamp(16px, 2.4vw, 22px);
+      align-items: stretch;
+    }
+    .zk-thumb {
+      border-radius: 8px;
+      overflow: hidden;
+      background: rgba(148,163,184,.12);
+      height: clamp(140px, 22vw, 220px);
+    }
+    .zk-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .zk-info {
+      display: grid;
+      gap: clamp(10px, 1.8vw, 16px);
+      align-content: start;
+    }
+    .zk-title {
+      margin: 0;
+      font-size: 1.3rem;
+    }
+    .zk-title a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .zk-title a:hover { color: var(--accent); }
+    .zk-title a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .zk-title a:hover { color: var(--accent); }
+    .zk-meta {
+      font-size: .95rem;
+      color: var(--muted);
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .zk-meta .dot { color: rgba(148,163,184,.6); }
+    .zk-excerpt {
+      margin: 0;
+      color: var(--muted);
+    }
+    .zk-link {
+      font-weight: 600;
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .zk-link:hover { color: var(--accent2); }
+    .zk-pager {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.5rem 0 0;
+    }
+    .zk-arrow {
+      appearance: none;
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+      color: var(--text);
+      font: inherit;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity .2s ease, transform .2s ease;
+    }
+    .zk-arrow:hover { transform: scale(1.1); }
+    .zk-arrow[disabled] { opacity: .35; cursor: not-allowed; transform: none; }
+    .zk-dot {
+      appearance: none;
+      background: rgba(148,163,184,.5);
+      border: 0;
+      cursor: pointer;
+      width: 8px;
+      height: 8px;
+      padding: 4px;
+      border-radius: 999px;
+      display: inline-block;
+      transition: transform .15s ease, background-color .15s ease, opacity .15s ease;
+    }
+    .zk-dot[aria-current="page"] { background: var(--text); transform: scale(1.2); }
+    #zk-list { will-change: opacity, transform; }
+    .zk-fade-out {
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity .22s ease, transform .22s ease;
+    }
+    .zk-fade-in {
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity .22s ease, transform .22s ease;
+    }
+    @media (max-width: 720px) {
+      .zk-row {
+        grid-template-columns: 1fr;
+      }
+      .zk-thumb {
+        height: 220px;
+      }
+    }
+  </style>
+<script>
+(function(){
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxqpI4zoU8QrK_TtB82_CRNn0Io7aSvvNvpAHn5UZFMpJqBXG-OdhP-PiEgE2ZBh6JpagmIwA_Uj44/pub?gid=0&single=true&output=csv";
+const PAGE_SIZE = 3;
+const INJECT_LDJSON = true;
+const IMG_PROXY = "";
+const PLACEHOLDER = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><rect width="100%" height="100%" fill="%23e5e7eb"/></svg>';
+const $=(s,r=document)=>r.querySelector(s);
+function parseCSV(t){
+  const rows=[]; let i=0,cur="",row=[],inQ=false;
+  while(i<t.length){
+    const c=t[i], n=t[i+1];
+    if(c==='\"'){ if(inQ&&n==='\"'){ cur+='\"'; i++; } else { inQ=!inQ; } }
+    else if(c===','&&!inQ){ row.push(cur); cur=""; }
+    else if((c==='\n'||c==='\r')&&!inQ){ if(cur!==""||row.length){ row.push(cur); rows.push(row); row=[]; cur=""; } }
+    else { cur+=c; } i++;
+  }
+  if(cur!==""||row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
+const norm=s=>(s||"").trim().toLowerCase().replace(/[^a-z0-9_]+/g,'_');
+const strip=html=>{ const d=document.createElement('div'); d.innerHTML=html; return d.textContent||d.innerText||""; };
+const readTime=html=>Math.max(1,Math.round(strip(html).split(/\s+/).filter(Boolean).length/225));
+const fmtDate=s=>{ const d=new Date(s); return isNaN(d)?(s||""):d.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}); };
+const driveId=u=>(u.match(/\/d\/([a-zA-Z0-9_-]{20,})/)||u.match(/[?&]id=([a-zA-Z0-9_-]{20,})/)||[])[1]||"";
+const isHTTPS = u => /^https:\/\//i.test(u||"");
+function canonicalImageURL(src){
+  if(!src) return "";
+  let u = src.trim();
+  if(!isHTTPS(u)) return "";
+  if(/drive\.google\.com/i.test(u)){
+    const id = driveId(u);
+    if(id) u = `https://drive.google.com/uc?id=${id}&export=view`;
+  }
+  return u;
+}
+function imageCandidates(src){
+  const list=[];
+  const orig = (src||"").trim();
+  if(!isHTTPS(orig)) return list;
+  if(/drive\.google\.com/i.test(orig)){
+    const id = driveId(orig);
+    if(id){
+      list.push(`https://drive.google.com/uc?id=${id}&export=view`);
+      list.push(`https://drive.google.com/thumbnail?id=${id}&sz=w380`);
+    }
+  }
+  list.push(orig);
+  if(IMG_PROXY){
+    return list.map(u => `${IMG_PROXY.replace(/\/$/,'')}/img?u=${encodeURIComponent(u)}`);
+  }
+  return list;
+}
+const listEl=$("#zk-list"), pagerEl=$("#zk-pager");
+let POSTS=[], page=1, totalPages=1;
+function renderPager(){
+  if(totalPages<=1){ pagerEl.innerHTML=""; return; }
+  let html = `<button class="zk-arrow" data-dir="prev" ${page<=1?'disabled':''} aria-label="Previous page">‹</button>`;
+  for(let i=1;i<=totalPages;i++){
+    html += `<button class="zk-dot" data-page="${i}" ${i===page?'aria-current="page"':''} aria-label="Page ${i}"></button>`;
+  }
+  html += `<button class="zk-arrow" data-dir="next" ${page>=totalPages?'disabled':''} aria-label="Next page">›</button>`;
+  pagerEl.innerHTML = html;
+}
+function renderPage(){
+  listEl.innerHTML="";
+  if(!POSTS.length){ listEl.textContent="No posts yet."; pagerEl.innerHTML=""; return; }
+  const start=(page-1)*PAGE_SIZE;
+  const items=POSTS.slice(start,start+PAGE_SIZE);
+  for(const p of items){
+    const row=document.createElement("div");
+    row.className="zk-item";
+    const img = document.createElement("img");
+    img.alt = p.title || "";
+    img.width = 128; img.height = 128;
+    img.loading = "eager"; img.decoding = "async";
+    img.referrerPolicy = "no-referrer";
+    const cands = imageCandidates(p.image);
+    let idx = 0;
+    const loadNext = () => { img.src = (idx < cands.length) ? cands[idx++] : PLACEHOLDER; };
+    img.addEventListener("error", loadNext);
+    loadNext();
+    const thumb = document.createElement("div");
+    thumb.className = "zk-thumb";
+    thumb.appendChild(img);
+    const meta=[fmtDate(p.date),`${readTime(p.bodyHTML)} min read`].filter(Boolean).join(" · ");
+    const excerptText = p.excerpt || (strip(p.bodyHTML).slice(0,180) + "…");
+    const href = p.url || `/blog/post/?slug=${encodeURIComponent(p.slug)}`;
+    row.innerHTML = `
+      <a class="zk-row" href="${href}" data-slug="${p.slug}">
+        <div class="zk-thumb"></div>
+        <div class="zk-info">
+          <h3 class="zk-title">${p.title}</h3>
+          <div class="zk-meta">${meta}</div>
+          ${excerptText ? `<p class="zk-excerpt">${excerptText}</p>` : ""}
+          <span class="zk-link">Read article</span>
+        </div>
+      </a>
+    `;
+    row.querySelector(".zk-row").replaceChild(thumb, row.querySelector(".zk-thumb"));
+    listEl.appendChild(row);
+  }
+  totalPages=Math.max(1,Math.ceil(POSTS.length/PAGE_SIZE));
+  renderPager();
+  listEl.classList.add('zk-fade-in');
+  setTimeout(()=>listEl.classList.remove('zk-fade-in'), 240);
+}
+function goToPage(target){
+  if(target===page || target<1 || target>totalPages) return;
+  listEl.classList.add('zk-fade-out');
+  setTimeout(()=>{
+    page = target;
+    renderPage();
+    listEl.classList.remove('zk-fade-out');
+  }, 180);
+}
+pagerEl.addEventListener("click",(e)=>{
+  const prev=e.target.closest('[data-dir="prev"]');
+  const next=e.target.closest('[data-dir="next"]');
+  const num=e.target.closest('[data-page]');
+  if(prev) goToPage(page-1);
+  if(next) goToPage(page+1);
+  if(num){ const goto=parseInt(num.getAttribute("data-page"),10); if(!isNaN(goto)) goToPage(goto); }
+});
+fetch(CSV_URL).then(r=>r.text()).then(csv=>{
+  const rows=parseCSV(csv);
+  const headers=rows.shift()||[];
+  const idx={}; headers.forEach((h,i)=>idx[norm(h)]=i);
+  const val=(r,k)=>String(r[idx[k]]||"").trim();
+  POSTS=rows.map(r=>{
+    if((val(r,"published")||"").toLowerCase()!=="true") return null;
+    const title=val(r,"title")||"Untitled";
+    return{
+      title,
+      date:val(r,"date"),
+      excerpt:val(r,"excerpt"),
+      image:canonicalImageURL(val(r,"image_url")),
+      url:val(r,"canonical_url"),
+      slug:val(r,"slug")||title.toLowerCase().replace(/[^a-z0-9]+/g,"-"),
+      bodyHTML:val(r,"content_html")||val(r,"content_md")
+    };
+  }).filter(Boolean).sort((a,b)=>(new Date(b.date)-new Date(a.date))||b.title.localeCompare(a.title));
+  if(INJECT_LDJSON) injectLD(POSTS);
+  renderPage();
+});
+function injectLD(posts){
+  const stripHTML = html => { const d=document.createElement("div"); d.innerHTML=html; return d.textContent||d.innerText||""; };
+  const ld=posts.map(p=>({
+    "@context":"https://schema.org",
+    "@type":"BlogPosting",
+    "headline":p.title,
+    "datePublished":p.date||undefined,
+    "author":{"@type":"Person","name":"Zor Keeler"},
+    "description":p.excerpt||undefined,
+    "articleBody":stripHTML(p.bodyHTML).slice(0,5000),
+    "image":p.image||undefined,
+    "mainEntityOfPage":p.url||window.location.href
+  }));
+  const s=document.createElement("script");
+  s.type="application/ld+json";
+  s.textContent=JSON.stringify(ld);
+  document.head.appendChild(s);
+}
+})();
+</script>
 </body>
 </html>
