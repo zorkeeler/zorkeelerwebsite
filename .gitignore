@@ -3,3 +3,4 @@ dist/
 .DS_Store
 .env
 npm-debug.log*
+assets/img/Seattle.mp4
