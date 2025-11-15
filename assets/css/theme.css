@@ -79,6 +79,13 @@
   .buy-sell-cta {
     margin-top: clamp(24px, 4vw, 32px);
   }
+  .buy-sell-cta .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 14px;
+    min-width: 220px;
+  }
   
   .kicker {
     font-size: .85rem;
@@ -454,6 +461,10 @@
     display: flex;
     gap: 16px;
     flex-wrap: wrap;
+  }
+
+  .panel .btn + .btn {
+    margin-top: 20px;
   }
 
   .intro-action {
@@ -945,6 +956,56 @@
     margin: 0;
     color: rgba(226,232,240,.74);
   }
+
+.about-story-block {
+  max-width: 72ch;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.section.about-story {
+  padding-bottom: clamp(36px, 5vw, 56px);
+}
+
+.section.about-story + .section {
+  padding-top: clamp(36px, 5vw, 56px);
+}
+
+.section.about-collage {
+  padding-top: clamp(32px, 6vw, 72px);
+  padding-bottom: clamp(56px, 7vw, 96px);
+  background: linear-gradient(180deg, rgba(248,250,255,1), rgba(241,245,249,.6));
+}
+
+.section.about-collage .lead {
+  max-width: 60ch;
+  margin-bottom: clamp(24px, 4vw, 36px);
+}
+
+.about-collage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: clamp(14px, 2vw, 20px);
+  width: 100%;
+}
+
+.about-collage-item {
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 18px 40px rgba(15,23,42,.16);
+}
+
+.about-collage-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.about-story-block p {
+  margin: 0 0 1.1rem;
+  color: rgba(15,23,42,.9);
+}
 
   .services-grid {
     margin-top: clamp(24px, 5vw, 40px);
