@@ -846,6 +846,8 @@
 
   @media (max-width: 768px) {
     .neighborhood-detail-hero .split {
+      grid-template-columns: 1fr;
+      justify-items: center;
       gap: clamp(28px, 8vw, 48px);
     }
     .neighborhood-detail-hero .split > :first-child {
