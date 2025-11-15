@@ -1687,6 +1687,24 @@
   }
 }
 
+@media (max-width: 1024px) {
+  .page-hero--with-image.neighborhood-detail-hero .wrap.split {
+    grid-template-columns: 1fr !important;
+    justify-items: center;
+    gap: clamp(24px, 6vw, 40px);
+  }
+  .page-hero--with-image.neighborhood-detail-hero .wrap.split > * {
+    width: 100%;
+    max-width: 520px;
+  }
+  .page-hero--with-image.neighborhood-detail-hero .wrap.split > :first-child {
+    order: 1;
+  }
+  .page-hero--with-image.neighborhood-detail-hero .wrap.split > :last-child {
+    order: 2;
+  }
+}
+
 .infoparagraph {
   padding-top: 64px;
 }
