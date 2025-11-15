@@ -30,20 +30,18 @@
   </header>
 
   <main>
-    <section class="page-hero page-hero--light article-hero">
-      <div class="wrap">
-        <div class="kicker">Blog</div>
-        <h1 id="article-title">Loading article…</h1>
-        <p class="lead" id="article-excerpt"></p>
-        <div class="article-meta" id="article-meta"></div>
-        <div class="article-tags" id="article-tags" hidden></div>
-      </div>
-    </section>
-
     <section class="section">
-      <div class="wrap blog-article">
+      <div class="wrap article-simple">
+        <header class="article-header">
+          <a class="article-back" href="/blog/">← Back to blog</a>
+          <h1 id="article-title">Loading article…</h1>
+          <p class="lead" id="article-excerpt"></p>
+          <div class="article-meta" id="article-meta"></div>
+          <div class="article-tags" id="article-tags" hidden></div>
+        </header>
+        <figure class="article-image" id="article-footnote"></figure>
         <article class="blog-article-body" id="article-body"></article>
-        <div class="article-footnote" id="article-footnote"></div>
+        <div class="article-related" id="article-related"></div>
       </div>
     </section>
   </main>
@@ -92,6 +90,7 @@
   const articleTags = $("#article-tags");
   const articleBody = $("#article-body");
   const articleFootnote = $("#article-footnote");
+  const articleRelated = $("#article-related");
 
   const params = new URLSearchParams(window.location.search);
   const slugParam = params.get("slug");
@@ -148,24 +147,49 @@
     return url;
   };
 
-  function renderPost(post){
+
+
+  const computeReadingTime = content => {
+    const text = stripHTML(content);
+    if(!text) return "";
+    const words = text.split(/\s+/).filter(Boolean).length;
+    const minutes = Math.max(1, Math.round(words / 225));
+    return `${minutes} min read`;
+  };
+
+  function renderPost(post, relatedPosts){
     const title = post.title || "Article";
     document.title = `${title} | Zor Keeler`;
     articleTitle.textContent = title;
     articleExcerpt.textContent = post.excerpt || "";
     const metaPieces = [];
     if(post.date) metaPieces.push(new Date(post.date).toLocaleDateString(undefined,{year:"numeric", month:"short", day:"numeric"}));
-    if(post.readingTime) metaPieces.push(post.readingTime);
-    articleMeta.innerHTML = metaPieces.join("<span class=\"dot\">·</span>");
+    const rt = post.readingTime || computeReadingTime(post.contentHTML || post.contentMd || post.content_md || "");
+    if(rt) metaPieces.push(rt);
+    articleMeta.innerHTML = metaPieces.map(piece => `<span>${piece}</span>`).join("");
     if(post.tags && post.tags.length){
       articleTags.hidden = false;
       articleTags.innerHTML = post.tags.map(tag => `<span class="blog-tag">${tag}</span>`).join("");
     } else {
       articleTags.hidden = true;
     }
-    articleBody.innerHTML = toParagraphs(post.contentHTML || post.contentMd || post.content_md || "");
+    const content = post.contentHTML || post.contentMd || post.content_md || "";
+    articleBody.innerHTML = toParagraphs(content);
     const imageUrl = canonicalImageURL(post.image) || PLACEHOLDER;
-    articleFootnote.innerHTML = `<figure class="article-featured"><img src="${imageUrl}" alt="${title} hero image" loading="lazy"></figure>`;
+    articleFootnote.innerHTML = imageUrl ? `<img src="${imageUrl}" alt="${title} hero image" loading="lazy">` : "";
+
+    if(articleRelated){
+      if(relatedPosts && relatedPosts.length){
+        articleRelated.innerHTML = `
+          <h3>More articles</h3>
+          <ul>
+            ${relatedPosts.map(p => `<li><a href="/blog/post/?slug=${encodeURIComponent(p.slug)}">${p.title}</a></li>`).join("")}
+          </ul>
+        `;
+      } else {
+        articleRelated.innerHTML = "";
+      }
+    }
   }
 
   function handleError(){
@@ -201,12 +225,14 @@
         };
       }).filter(Boolean);
 
-      const post = posts.find(p => !slugParam || p.slug === slugParam);
+      const targetIndex = posts.findIndex(p => !slugParam || p.slug === slugParam);
+      const post = posts[targetIndex >= 0 ? targetIndex : 0];
       if(!post){
         handleError();
         return;
       }
-      renderPost(post);
+      const relatedPosts = posts.filter((_, idx) => idx !== targetIndex).slice(0,4);
+      renderPost(post, relatedPosts);
     })
     .catch(() => handleError());
 })();

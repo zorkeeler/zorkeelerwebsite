@@ -29,7 +29,7 @@
     </div>
   </header>
 
-  <section class="page-hero page-hero--light">
+  <section class="page-hero page-hero--light blog-hero">
     <div class="wrap">
       <div class="kicker">Journal</div>
       <h1>Seattle Real Estate Blog</h1>
@@ -42,7 +42,7 @@
       <!-- ===== ZK BLOG (mobile-left + sleek dot pagination, robust CSV, smooth transitions) ===== -->
       <div id="zk-blog" class="zk-blog">
         <div id="zk-list"></div>
-        <nav id="zk-pager" class="zk-pager" aria-label="Blog pagination"></nav>
+      <div id="zk-loading" class="blog-status" aria-live="polite"></div>
       </div>
     </div>
   </section>
@@ -80,7 +80,7 @@
   </footer>
   <style>
     #zk-blog {
-      max-width: 980px;
+      max-width: 860px;
       margin: 0 auto;
       padding: 0;
     }
@@ -112,7 +112,7 @@
     }
     .zk-info {
       display: grid;
-      gap: clamp(10px, 1.8vw, 16px);
+      gap: clamp(8px, 1.5vw, 14px);
       align-content: start;
     }
     .zk-title {
@@ -208,7 +208,7 @@
 <script>
 (function(){
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxqpI4zoU8QrK_TtB82_CRNn0Io7aSvvNvpAHn5UZFMpJqBXG-OdhP-PiEgE2ZBh6JpagmIwA_Uj44/pub?gid=0&single=true&output=csv";
-const PAGE_SIZE = 3;
+const PAGE_SIZE = 5;
 const INJECT_LDJSON = true;
 const IMG_PROXY = "";
 const PLACEHOLDER = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><rect width="100%" height="100%" fill="%23e5e7eb"/></svg>';
@@ -258,23 +258,12 @@ function imageCandidates(src){
   }
   return list;
 }
-const listEl=$("#zk-list"), pagerEl=$("#zk-pager");
-let POSTS=[], page=1, totalPages=1;
-function renderPager(){
-  if(totalPages<=1){ pagerEl.innerHTML=""; return; }
-  let html = `<button class="zk-arrow" data-dir="prev" ${page<=1?'disabled':''} aria-label="Previous page">‹</button>`;
-  for(let i=1;i<=totalPages;i++){
-    html += `<button class="zk-dot" data-page="${i}" ${i===page?'aria-current="page"':''} aria-label="Page ${i}"></button>`;
-  }
-  html += `<button class="zk-arrow" data-dir="next" ${page>=totalPages?'disabled':''} aria-label="Next page">›</button>`;
-  pagerEl.innerHTML = html;
-}
-function renderPage(){
-  listEl.innerHTML="";
-  if(!POSTS.length){ listEl.textContent="No posts yet."; pagerEl.innerHTML=""; return; }
-  const start=(page-1)*PAGE_SIZE;
-  const items=POSTS.slice(start,start+PAGE_SIZE);
-  for(const p of items){
+const listEl=$("#zk-list"), loadingEl=$("#zk-loading");
+let POSTS=[], rendered=0, loading=false;
+const setLoading = msg => { if(loadingEl) loadingEl.textContent = msg || ""; };
+
+function appendPosts(items){
+  items.forEach(p => {
     const row=document.createElement("div");
     row.className="zk-item";
     const img = document.createElement("img");
@@ -292,7 +281,8 @@ function renderPage(){
     thumb.appendChild(img);
     const meta=[fmtDate(p.date),`${readTime(p.bodyHTML)} min read`].filter(Boolean).join(" · ");
     const excerptText = p.excerpt || (strip(p.bodyHTML).slice(0,180) + "…");
-    const href = p.url || `/blog/post/?slug=${encodeURIComponent(p.slug)}`;
+    const tagsHtml = (p.tags && p.tags.length) ? `<div class="zk-tags">${p.tags.map(tag => `<span class="blog-tag">${tag}</span>`).join("")}</div>` : "";
+    const href = `/blog/post/?slug=${encodeURIComponent(p.slug)}`;
     row.innerHTML = `
       <a class="zk-row" href="${href}" data-slug="${p.slug}">
         <div class="zk-thumb"></div>
@@ -300,35 +290,37 @@ function renderPage(){
           <h3 class="zk-title">${p.title}</h3>
           <div class="zk-meta">${meta}</div>
           ${excerptText ? `<p class="zk-excerpt">${excerptText}</p>` : ""}
+          ${tagsHtml}
           <span class="zk-link">Read article</span>
         </div>
       </a>
     `;
     row.querySelector(".zk-row").replaceChild(thumb, row.querySelector(".zk-thumb"));
     listEl.appendChild(row);
+  });
+}
+
+function renderNextBatch(){
+  if(loading || rendered >= POSTS.length){ 
+    if(rendered >= POSTS.length) setLoading("");
+    return; 
   }
-  totalPages=Math.max(1,Math.ceil(POSTS.length/PAGE_SIZE));
-  renderPager();
-  listEl.classList.add('zk-fade-in');
-  setTimeout(()=>listEl.classList.remove('zk-fade-in'), 240);
+  loading = true;
+  setLoading("Loading articles…");
+  const batch = POSTS.slice(rendered, rendered + PAGE_SIZE);
+  appendPosts(batch);
+  rendered += batch.length;
+  loading = false;
+  setLoading(rendered >= POSTS.length ? "" : "Scroll for more articles");
 }
-function goToPage(target){
-  if(target===page || target<1 || target>totalPages) return;
-  listEl.classList.add('zk-fade-out');
-  setTimeout(()=>{
-    page = target;
-    renderPage();
-    listEl.classList.remove('zk-fade-out');
-  }, 180);
+
+function handleScroll(){
+  if(loading) return;
+  if(window.innerHeight + window.scrollY >= document.body.offsetHeight - 400){
+    renderNextBatch();
+  }
 }
-pagerEl.addEventListener("click",(e)=>{
-  const prev=e.target.closest('[data-dir="prev"]');
-  const next=e.target.closest('[data-dir="next"]');
-  const num=e.target.closest('[data-page]');
-  if(prev) goToPage(page-1);
-  if(next) goToPage(page+1);
-  if(num){ const goto=parseInt(num.getAttribute("data-page"),10); if(!isNaN(goto)) goToPage(goto); }
-});
+window.addEventListener("scroll", handleScroll);
 fetch(CSV_URL).then(r=>r.text()).then(csv=>{
   const rows=parseCSV(csv);
   const headers=rows.shift()||[];
@@ -348,7 +340,12 @@ fetch(CSV_URL).then(r=>r.text()).then(csv=>{
     };
   }).filter(Boolean).sort((a,b)=>(new Date(b.date)-new Date(a.date))||b.title.localeCompare(a.title));
   if(INJECT_LDJSON) injectLD(POSTS);
-  renderPage();
+  if(!POSTS.length){
+    listEl.textContent = "New articles are on the way. Check back soon.";
+    setLoading("");
+    return;
+  }
+  renderNextBatch();
 });
 function injectLD(posts){
   const stripHTML = html => { const d=document.createElement("div"); d.innerHTML=html; return d.textContent||d.innerText||""; };
@@ -372,3 +369,8 @@ function injectLD(posts){
 </script>
 </body>
 </html>
+    .zk-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
