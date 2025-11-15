@@ -97,32 +97,22 @@
     z-index: 100;
     background: #ffffff;
     transition: background .18s ease, box-shadow .18s ease;
+    padding-top: env(safe-area-inset-top, 0);
   }
   
   /* Constrain + safe padding on both sides */
-  .header .inner {
-    max-width: var(--wrap);
+.header .inner {
+    max-width: none;
     margin: 0 auto;
-    /* clamp keeps a little padding at small sizes and grows with viewport,
-       plus safe-area for iOS notches */
-    padding: 12px
-             clamp(14px, 2.4vw, var(--gutter))
-             12px
-             calc(clamp(14px, 2.4vw, var(--gutter)) + env(safe-area-inset-left));
-    padding-right: calc(clamp(14px, 2.4vw, var(--gutter)) + env(safe-area-inset-right));
-  
+    padding-left:  calc(24px + env(safe-area-inset-left));
+    padding-right: calc(24px + env(safe-area-inset-right));
+    padding-top: 12px;
+    padding-bottom: 12px;
     display: grid;
     grid-template-columns: 1fr auto;
     align-items: center;
     gap: 12px;
   }
-
-  /* Make header span full width with ~24px gutters */
-.header .inner {
-  max-width: none; /* stop constraining to --wrap */
-  padding-left:  calc(24px + env(safe-area-inset-left));
-  padding-right: calc(24px + env(safe-area-inset-right));
-}
 
   .header.is-scrolled {
     box-shadow: 0 8px 20px rgba(15,23,42,.08);
@@ -264,26 +254,41 @@
     border: 0;
     background: transparent;
     display: none;
-    width: 40px; height: 36px;
-    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
     place-items: center;
     cursor: pointer;
   }
-  .menu-toggle .line {
-    display: block;
-    height: 2px; width: 22px;
-    margin: 4px auto;
-    background: var(--text);
-    border-radius: 2px;
-    transition: transform .2s ease, opacity .2s ease;
-  }
   
+  .menu-toggle .line { display: none; }
+  .menu-toggle::before {
+    content: "≡";
+    font-size: 24px;
+    line-height: 1;
+    color: var(--text);
+  }
+  .header.is-open .menu-toggle::before {
+    content: "×";
+  }
+  .header--inverse:not(.is-scrolled) .menu-toggle::before {
+    color: #f8fafc;
+  }
+
   /* =========================================
      Mobile behavior
      ========================================= */
   @media (max-width: 980px) {
     /* show hamburger, move nav into a slide-down panel */
-    .menu-toggle { display: grid; justify-self: end; }
+    .menu-toggle {
+      display: grid;
+      justify-self: end;
+      width: 36px;
+      height: 36px;
+      margin-top: env(safe-area-inset-top, 0);
+      margin-right: calc(env(safe-area-inset-right, 0) + 8px);
+      color: var(--text);
+    }
   
     /* put toggle between brand and nav */
     .header .inner { grid-template-columns: auto auto; }
@@ -299,6 +304,7 @@
       border-bottom: 1px solid rgba(15,23,42,.08);
       transform: translateY(-120%);
       transition: transform .22s ease;
+      padding-top: calc(12px + env(safe-area-inset-top));
     }
   
     /* big tap targets */
@@ -313,13 +319,15 @@
     .header.is-open .nav { transform: translateY(0); }
   
     /* animate hamburger into X when open */
-    .header.is-open .menu-toggle .line:nth-child(1) { transform: translateY(6px) rotate(45deg); }
-    .header.is-open .menu-toggle .line:nth-child(2) { opacity: 0; }
-    .header.is-open .menu-toggle .line:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+    .menu-toggle span {
+      font-size: 26px;
+      line-height: 1;
+    }
 
     .header--inverse:not(.is-scrolled) .nav {
       background: rgba(1,10,21,.92);
       border-bottom: 1px solid rgba(248,250,252,.1);
+      padding-top: calc(12px + env(safe-area-inset-top));
     }
     .header--inverse:not(.is-scrolled) .nav a {
       color: rgba(248,250,252,.95);
@@ -780,6 +788,19 @@
     }
   }
 
+  @media (max-width: 768px) {
+    .neighborhood-detail-hero .split {
+      grid-template-columns: 1fr;
+      justify-items: center;
+    }
+    .neighborhood-detail-hero .panel {
+      width: 100%;
+      max-width: 520px;
+    }
+    .intro-photo img {
+      width: clamp(180px, 70vw, 320px);
+    }
+  }
   .neighborhood-detail-hero .split {
     align-items: center;
     gap: clamp(28px, 6vw, 56px);
@@ -1611,6 +1632,17 @@
   justify-self: center;
 }
 
+@media (max-width: 1040px) {
+  .atglance-split {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .atglance-split > :last-child {
+    justify-self: stretch;
+    width: 100%;
+  }
+}
+
 .infoparagraph {
   padding-top: 64px;
 }
@@ -2151,8 +2183,8 @@
       gap: 2rem;
     }
     .insight img {
-      width: 132px;
-      height: 132px;
+      width: 150px;
+      height: 150px;
     }
     .insight-bubble {
       padding: 28px 32px;
@@ -2167,8 +2199,8 @@
       gap: 1rem;
     }
     .insight img {
-      width: 120px;
-      height: 120px;
+      width: 170px;
+      height: 170px;
     }
     .insight-bubble {
       max-width: 640px;
