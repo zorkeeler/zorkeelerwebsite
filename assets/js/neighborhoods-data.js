@@ -1,6 +1,6 @@
 /**
  * GENERATED MERGE — Existing file + Sheet overrides
- * Build time: 2025-11-14T02:09:33.860Z
+ * Build time: 2025-11-15T12:29:17.808Z
  */
 window.NEIGHBORHOODS = {
   "queen-anne": {
@@ -1247,7 +1247,7 @@ window.NEIGHBORHOODS = {
       "23."
     ],
     "homes": "Sammamish is defined by 1980s–2000s suburban homes—two-story traditionals, craftsman-inspired designs, and contemporary custom houses on wooded lots. Once largely rural, it urbanized rapidly after incorporation in 1999. The architectural mix reflects its balance between preserved nature and modern family living.",
-    "insights": "Sammamish feels like the forest decided to grow a neighborhood inside it. Space, quiet, and natural light define daily life here.",
+    "insights": "Sammamish feels like the forest decided to grow a neighborhood inside it. Space, quiet, and natural light define daily life here. It's a great blend of nature and city amenities.",
     "funFacts": [
       "It is home to the headquarters of the multinational retail company Costco Wholesale Corporation.",
       "Squak Mountain connects via Mountain Park Blvd and Sunset Way.",
