@@ -260,6 +260,20 @@
     place-items: center;
     cursor: pointer;
   }
+  .menu-toggle .line { display: none; }
+  .menu-toggle::before {
+    content: "≡";
+    font-size: 22px;
+    line-height: 1;
+    color: var(--text);
+    transition: color .2s ease;
+  }
+  .header.is-open .menu-toggle::before {
+    content: "×";
+  }
+  .header--inverse:not(.is-scrolled) .menu-toggle::before {
+    color: #f8fafc;
+  }
   
   .menu-toggle .line { display: none; }
   .menu-toggle::before {
@@ -788,23 +802,20 @@
     }
   }
 
-  @media (max-width: 768px) {
-    .neighborhood-detail-hero .split {
-      grid-template-columns: 1fr;
-      justify-items: center;
-    }
-    .neighborhood-detail-hero .panel {
-      width: 100%;
-      max-width: 520px;
-    }
-    .intro-photo img {
-      width: clamp(180px, 70vw, 320px);
-    }
+  .page-hero--with-image.neighborhood-detail-hero .wrap {
+    padding: clamp(36px, 6vw, 80px);
   }
+
   .neighborhood-detail-hero .split {
-    align-items: center;
+    align-items: flex-start;
     gap: clamp(28px, 6vw, 56px);
-    grid-template-columns: minmax(0,1.1fr) minmax(0,1fr);
+    grid-template-columns: minmax(0,1.05fr) minmax(0,max-content);
+    justify-content: space-between;
+  }
+
+  .neighborhood-detail-hero .split > :first-child {
+    max-width: 600px;
+    width: 100%;
   }
 
   .neighborhood-detail-hero .panel {
@@ -816,6 +827,37 @@
     width: max-content;
     max-width: 420px;
     justify-self: center;
+  }
+
+  @media (max-width: 1150px) {
+    .neighborhood-detail-hero .split {
+      grid-template-columns: 1fr;
+      justify-items: center;
+      text-align: left;
+    }
+    .neighborhood-detail-hero .split > :first-child {
+      max-width: 640px;
+    }
+    .neighborhood-detail-hero .panel {
+      width: 100%;
+      max-width: 460px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .neighborhood-detail-hero .split {
+      gap: clamp(28px, 8vw, 48px);
+    }
+    .neighborhood-detail-hero .split > :first-child {
+      width: 100%;
+    }
+    .neighborhood-detail-hero .panel {
+      width: 100%;
+      max-width: 520px;
+    }
+    .intro-photo img {
+      width: clamp(180px, 70vw, 320px);
+    }
   }
 
   .map-section {
